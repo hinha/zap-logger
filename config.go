@@ -74,7 +74,7 @@ func NewProductionConfig() Config {
 		Development:   false,
 		Encoding:      "json",
 		EncoderConfig: NewProductionEncoderConfig(),
-		MaxSize:       100, // 10MB
+		MaxSize:       100, // 100MB
 		MaxBackups:    3,
 		LocalTime:     true,
 		Compress:      true,
@@ -114,7 +114,7 @@ func NewDevelopmentConfig() Config {
 		Development:   true,
 		Encoding:      "console",
 		EncoderConfig: NewDevelopmentEncoderConfig(),
-		MaxSize:       10, // 1MB
+		MaxSize:       10, // 10MB
 		MaxBackups:    1,
 		LocalTime:     false,
 		Compress:      false,

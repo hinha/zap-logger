@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -17,42 +18,7 @@ const (
 	bufferSizeDebug = 1024
 )
 
-// ZapCoreOption options of core
-type ZapCoreOption func(*ZapLogger)
-
-func WithWriter(filename string, days int) ZapCoreOption {
-	return func(log *ZapLogger) {
-		if log.Config.Encoding == "" || log.Config.Encoding == "console" {
-			return
-		}
-
-		writer := newWriter(filename,
-			days, log.Config.MaxSize, log.Config.MaxBackups, log.Config.LocalTime, log.Config.Interval)
-		log.rotate = writer.Logger
-
-		if log.Config.Development {
-			w := zapcore.NewCore(zapcore.NewJSONEncoder(log.Config.EncoderConfig), &zapcore.BufferedWriteSyncer{
-				WS:   zapcore.AddSync(writer.Writer),
-				Size: bufferSizeDebug,
-			}, log.Config.Level)
-			log.cores = append(log.cores, w)
-
-			return
-		}
-		w := zapcore.NewCore(zapcore.NewJSONEncoder(log.Config.EncoderConfig), &zapcore.BufferedWriteSyncer{
-			WS:   zapcore.AddSync(writer.Writer),
-			Size: bufferSize,
-		}, log.Config.Level)
-		log.cores = append(log.cores, w)
-	}
-}
-
-type writer struct {
-	io.Writer
-	*lumberjack.Logger
-}
-
-func newWriter(filename string, days, size, backups int, local bool, interval time.Duration) writer {
+func newWriter(filename string, days, size, backups int, local bool, interval time.Duration) (io.Writer, *lumberjack.Logger) {
 	lg := &lumberjack.Logger{
 		Filename:   filename,
 		MaxSize:    size,
@@ -64,7 +30,7 @@ func newWriter(filename string, days, size, backups int, local bool, interval ti
 	d := diode.NewWriter(lg, bufferSize, interval, func(missed int) {
 		// fmt.Printf("Dropped %d messages\n", missed)
 	})
-	return writer{d, lg}
+	return d, lg
 }
 
 func getStdout(interval time.Duration) io.Writer {
@@ -72,4 +38,25 @@ func getStdout(interval time.Duration) io.Writer {
 		// fmt.Printf("Dropped %d messages\n", missed)
 	})
 	return w
+}
+
+func jsonEncoder(w io.Writer, debug bool, cfg zapcore.EncoderConfig, lvl zap.AtomicLevel) zapcore.Core {
+	if debug {
+		return zapcore.NewCore(zapcore.NewJSONEncoder(cfg), &zapcore.BufferedWriteSyncer{
+			WS:   zapcore.AddSync(w),
+			Size: bufferSizeDebug,
+		}, lvl)
+	}
+	return zapcore.NewCore(zapcore.NewJSONEncoder(cfg), &zapcore.BufferedWriteSyncer{
+		WS:   zapcore.AddSync(w),
+		Size: bufferSize,
+	}, lvl)
+}
+
+func consoleEncoder(w io.Writer, cfg zapcore.EncoderConfig, lvl zap.AtomicLevel) zapcore.Core {
+	return zapcore.NewCore(
+		zapcore.NewConsoleEncoder(cfg),
+		zapcore.AddSync(w),
+		lvl,
+	)
 }

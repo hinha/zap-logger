@@ -1,6 +1,8 @@
 package zap_logger
 
 import (
+	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
 	"time"
 
 	"go.uber.org/zap"
@@ -41,6 +43,18 @@ type Config struct {
 	// using gzip. The default is not to perform compression.
 	Compress bool
 
+	// Filename is the file to write logs to.  Backup log files will be retained
+	// in the same directory.  It uses <processname>-lumberjack.log in
+	// os.TempDir() if empty.
+	Filename string
+
+	// MaxAge is the maximum number of days to retain old log files based on the
+	// timestamp encoded in their filename.  Note that a day is defined as 24
+	// hours and may not exactly correspond to calendar days due to daylight
+	// savings, leap seconds, etc. The default is not to remove old log files
+	// based on age.
+	MaxAge int
+
 	Interval time.Duration
 }
 
@@ -78,6 +92,8 @@ func NewProductionConfig() Config {
 		MaxBackups:    3,
 		LocalTime:     true,
 		Compress:      true,
+		Filename:      "app.log",
+		MaxAge:        30,
 		Interval:      time.Duration(15) * time.Microsecond,
 	}
 }
@@ -118,6 +134,12 @@ func NewDevelopmentConfig() Config {
 		MaxBackups:    1,
 		LocalTime:     false,
 		Compress:      false,
+		Filename:      "app.log",
+		MaxAge:        30,
 		Interval:      time.Duration(5) * time.Microsecond,
 	}
+}
+
+func (c Config) writer() (io.Writer, *lumberjack.Logger) {
+	return newWriter(c.Filename, c.MaxAge, c.MaxSize, c.MaxBackups, c.LocalTime, c.Interval)
 }

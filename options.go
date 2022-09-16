@@ -3,7 +3,9 @@ package zap_logger
 import (
 	"fmt"
 	"github.com/hinha/zap-logger/buffer"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // Logger  logger
@@ -24,6 +26,19 @@ func (f optionFunc) apply(log *Logger) {
 func (log *Logger) clone() *Logger {
 	copy := *log
 	return &copy
+}
+
+// Fields adds fields to the Logger.
+func Fields(fs ...zap.Field) Option {
+	return optionFunc(func(log *Logger) {
+		log.core = log.core.With(fs)
+	})
+}
+
+func addRotate(lb *lumberjack.Logger) Option {
+	return optionFunc(func(log *Logger) {
+		log.rotate = lb
+	})
 }
 
 // WithOptions clones the current Logger, applies the supplied Options, and

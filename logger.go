@@ -1,13 +1,13 @@
 package zap_logger
 
 import (
-	"io"
-	"os"
-	"strings"
-
+	"context"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
+	"os"
+	"strings"
 )
 
 // A ZapLogger provides fast, leveled, structured logging. All methods are safe
@@ -31,6 +31,10 @@ type ZapLogger struct {
 
 	clock zapcore.Clock
 
+	contextFunc func(ctx context.Context, log *ZapLogger)
+
+	Ctx *inmemCtx
+
 	cores  []zapcore.Core
 	rotate *lumberjack.Logger
 }
@@ -43,6 +47,13 @@ type LoggerI interface {
 	Fatal(msg string, fields ...zap.Field)
 	Panic(msg string, fields ...zap.Field)
 	DPanic(msg string, fields ...zap.Field)
+	DebugCtx(ctx context.Context, msg string, fields ...zap.Field)
+	InfoCtx(ctx context.Context, msg string, fields ...zap.Field)
+	WarnCtx(ctx context.Context, msg string, fields ...zap.Field)
+	ErrorCtx(ctx context.Context, msg string, fields ...zap.Field)
+	FatalCtx(ctx context.Context, msg string, fields ...zap.Field)
+	PanicCtx(ctx context.Context, msg string, fields ...zap.Field)
+	DPanicCtx(ctx context.Context, msg string, fields ...zap.Field)
 }
 
 // New constructs a new ZapLogger from the provided zapcore.Core and Options. If
@@ -59,6 +70,7 @@ func New(core zapcore.Core, config Config, opts ...Option) *ZapLogger {
 		errorOutput: zapcore.Lock(os.Stderr),
 		addStack:    zapcore.FatalLevel + 1,
 		clock:       zapcore.DefaultClock,
+		Ctx:         newMemCtx(),
 	}
 
 	return log.WithOptions(opts...)
@@ -101,6 +113,9 @@ func NewLogger(config Config, opts ...Option) *ZapLogger {
 
 // Sync wrap sync
 func (log *ZapLogger) Sync() error {
+	// delete context
+	log.Ctx.Prune()
+
 	err := log.core.Sync()
 	if err != nil {
 		return err
@@ -109,6 +124,7 @@ func (log *ZapLogger) Sync() error {
 	if log.rotate != nil {
 		return log.rotate.Rotate()
 	}
+
 	return log.core.Sync()
 }
 
@@ -208,7 +224,70 @@ func (log *ZapLogger) DPanic(msg string, fields ...zap.Field) {
 	if ce := log.check(zap.DPanicLevel, msg); ce != nil {
 		ce.Write(checkFields(fields...)...)
 	}
+}
 
+// DebugCtx with context logs a message at level DebugMode on the ZapLogger.
+func (log *ZapLogger) DebugCtx(ctx context.Context, msg string, fields ...zap.Field) {
+	l := log.generateCtxFields(ctx)
+	if ce := l.check(zap.DebugLevel, msg); ce != nil {
+		ce.Write(checkFields(fields...)...)
+	}
+}
+
+// InfoCtx with context logs a message at level Info on the ZapLogger.
+func (log *ZapLogger) InfoCtx(ctx context.Context, msg string, fields ...zap.Field) {
+	l := log.generateCtxFields(ctx)
+	if ce := l.check(zap.InfoLevel, msg); ce != nil {
+		ce.Write(checkFields(fields...)...)
+	}
+}
+
+// WarnCtx with context logs a message at level Warn on the ZapLogger.
+func (log *ZapLogger) WarnCtx(ctx context.Context, msg string, fields ...zap.Field) {
+	l := log.generateCtxFields(ctx)
+	if ce := l.check(zap.WarnLevel, msg); ce != nil {
+		ce.Write(checkFields(fields...)...)
+	}
+}
+
+// ErrorCtx with context logs a message at level Error on the ZapLogger.
+func (log *ZapLogger) ErrorCtx(ctx context.Context, msg string, fields ...zap.Field) {
+	l := log.generateCtxFields(ctx)
+	if ce := l.check(zap.ErrorLevel, msg); ce != nil {
+		ce.Write(checkFields(fields...)...)
+	}
+}
+
+// FatalCtx with context logs a message at level Fatal on the ZapLogger.
+func (log *ZapLogger) FatalCtx(ctx context.Context, msg string, fields ...zap.Field) {
+	l := log.generateCtxFields(ctx)
+	if ce := l.check(zap.FatalLevel, msg); ce != nil {
+		ce.Write(checkFields(fields...)...)
+	}
+}
+
+// PanicCtx with context logs a message at level Panic on the ZapLogger.
+func (log *ZapLogger) PanicCtx(ctx context.Context, msg string, fields ...zap.Field) {
+	l := log.generateCtxFields(ctx)
+	if ce := l.check(zap.PanicLevel, msg); ce != nil {
+		ce.Write(checkFields(fields...)...)
+	}
+}
+
+// DPanicCtx with context logs a message at level DPanic on the ZapLogger.
+func (log *ZapLogger) DPanicCtx(ctx context.Context, msg string, fields ...zap.Field) {
+	l := log.generateCtxFields(ctx)
+	if ce := l.check(zap.DPanicLevel, msg); ce != nil {
+		ce.Write(checkFields(fields...)...)
+	}
+}
+
+func (log *Logger) generateCtxFields(ctx context.Context) *ZapLogger {
+	if ctx != nil && log.contextFunc != nil {
+		log.contextFunc(ctx, log)
+		return log.With(zap.Object("context", log.Ctx))
+	}
+	return log
 }
 
 // WithField return a log with an extra field.

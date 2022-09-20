@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/stretchr/testify v1.8.0
+	go.uber.org/goleak v1.1.11
 	go.uber.org/zap v1.23.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )

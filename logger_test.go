@@ -1,6 +1,7 @@
 package zap_logger
 
 import (
+	"context"
 	"testing"
 
 	"go.uber.org/zap"
@@ -104,6 +105,29 @@ func TestLoggerWith(t *testing.T) {
 			{Context: []zap.Field{zap.Int("foo", 42), zap.String("three", "four")}},
 			{Context: []zap.Field{zap.Int("foo", 42)}},
 		}, logs.AllUntimed(), "Unexpected cross-talk between child loggers.")
+	})
+}
+
+func TestLoggerContext(t *testing.T) {
+	type ctxID string
+	const (
+		ContextID1 ctxID = "ContextID1"
+		ContextID2 ctxID = "ContextID2"
+	)
+
+	ctx := context.TODO()
+	ctx = context.WithValue(ctx, ContextID1, "c99c2ca0-37f1-11ed-a261-0242ac120002")
+	fieldOpts := opts(AddContext(func(ctx context.Context, log *ZapLogger) {
+		log.Ctx.Set(ContextID1, ctx)
+		log.Ctx.Set(ContextID2, ctx)
+	}))
+
+	withLogger(t, zap.DebugLevel, fieldOpts, func(logger *Logger, logs *observer.ObservedLogs) {
+		logger.InfoCtx(ctx, "")
+
+		assert.Equal(t, []observer.LoggedEntry{
+			{Context: []zap.Field{zap.Object("context", logger.Ctx)}},
+		}, logs.AllUntimed(), "Unexpected context loggers.")
 	})
 }
 

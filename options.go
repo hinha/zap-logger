@@ -1,11 +1,14 @@
 package zap_logger
 
 import (
+	"context"
 	"fmt"
-	"github.com/hinha/zap-logger/buffer"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/hinha/zap-logger/buffer"
 )
 
 // Logger  logger
@@ -89,6 +92,15 @@ func AddStacktrace(lvl zapcore.LevelEnabler) Option {
 func Development() Option {
 	return optionFunc(func(log *Logger) {
 		log.development = true
+	})
+}
+
+// AddContext it is used to decide which of the values in the context be used.
+// After deciding the context value will call the set function,
+// used to read the entire contents of the context value on the key
+func AddContext(contextFunc func(ctx context.Context, log *ZapLogger)) Option {
+	return optionFunc(func(log *Logger) {
+		log.contextFunc = contextFunc
 	})
 }
 

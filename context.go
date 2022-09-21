@@ -9,6 +9,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type (
+	mapCtx    map[any]context.Context
+	callerCtx map[any]zapcore.EntryCaller
+)
+
 func newMemCtx() *inmemCtx {
 	return &inmemCtx{
 		mapCtx: make(map[interface{}]context.Context),
@@ -18,9 +23,9 @@ func newMemCtx() *inmemCtx {
 }
 
 type inmemCtx struct {
-	mapCtx map[any]context.Context
+	mapCtx mapCtx
 	mu     *sync.RWMutex
-	caller map[any]zapcore.EntryCaller
+	caller callerCtx
 }
 
 // Set sets the context entries associated with key to the
@@ -61,12 +66,22 @@ func (c *inmemCtx) Prune() {
 	}
 }
 
+func (c *inmemCtx) data() *contextField {
+	return &contextField{c.mapCtx, c.caller, c.mu}
+}
+
 // Len Gets length key of map Context
 func (c *inmemCtx) Len() int { return len(c.mapCtx) }
 
-func (c *inmemCtx) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+type contextField struct {
+	data   mapCtx
+	caller callerCtx
+	mu     *sync.RWMutex
+}
+
+func (c *contextField) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	c.mu.RLock()
-	for key, ctx := range c.mapCtx {
+	for key, ctx := range c.data {
 		keyTypeOf := reflect.TypeOf(key)
 		keyValOf := reflect.ValueOf(key)
 
@@ -83,7 +98,8 @@ func (c *inmemCtx) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 			continue
 		}
 
-		if err := enc.AddObject(ctxKey, contextLog{value: ctxValue, caller: c.caller[key]}); err != nil {
+		cf := contextFieldValue{value: ctxValue, caller: c.caller[key]}
+		if err := enc.AddObject(ctxKey, cf); err != nil {
 			continue
 		}
 	}

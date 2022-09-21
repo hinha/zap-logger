@@ -285,7 +285,7 @@ func (log *ZapLogger) DPanicCtx(ctx context.Context, msg string, fields ...zap.F
 func (log *Logger) generateCtxFields(ctx context.Context) *ZapLogger {
 	if ctx != nil && log.contextFunc != nil {
 		log.contextFunc(ctx, log)
-		return log.With(zap.Object("context", log.Ctx))
+		return log.With(zap.Object("context", log.Ctx.data()))
 	}
 	return log
 }

@@ -126,7 +126,7 @@ func TestLoggerContext(t *testing.T) {
 		logger.InfoCtx(ctx, "")
 
 		assert.Equal(t, []observer.LoggedEntry{
-			{Context: []zap.Field{zap.Object("context", logger.Ctx)}},
+			{Context: []zap.Field{zap.Object("context", logger.Ctx.data())}},
 		}, logs.AllUntimed(), "Unexpected context loggers.")
 	})
 }

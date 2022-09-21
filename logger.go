@@ -173,56 +173,52 @@ func (log *Logger) Log(lvl zapcore.Level, msg string, fields ...zap.Field) {
 	}
 }
 
-func checkFields(fields ...zap.Field) []zap.Field {
-	return fields
-}
-
 // Debug logs a message at level DebugMode on the ZapLogger.
 func (log *ZapLogger) Debug(msg string, fields ...zap.Field) {
 	if ce := log.check(zap.DebugLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
 // Info logs a message at level Info on the ZapLogger.
 func (log *ZapLogger) Info(msg string, fields ...zap.Field) {
 	if ce := log.check(zap.InfoLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
 // Warn logs a message at level Warn on the ZapLogger.
 func (log *ZapLogger) Warn(msg string, fields ...zap.Field) {
 	if ce := log.check(zap.WarnLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
 // Error logs a message at level Error on the ZapLogger.
 func (log *ZapLogger) Error(msg string, fields ...zap.Field) {
 	if ce := log.check(zap.ErrorLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
 // Fatal logs a message at level Fatal on the ZapLogger.
 func (log *ZapLogger) Fatal(msg string, fields ...zap.Field) {
 	if ce := log.check(zap.FatalLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
 // Panic logs a message at level Panic on the ZapLogger.
 func (log *ZapLogger) Panic(msg string, fields ...zap.Field) {
 	if ce := log.check(zap.PanicLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
 // DPanic logs a message at level DPanic on the ZapLogger.
 func (log *ZapLogger) DPanic(msg string, fields ...zap.Field) {
 	if ce := log.check(zap.DPanicLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
@@ -230,7 +226,7 @@ func (log *ZapLogger) DPanic(msg string, fields ...zap.Field) {
 func (log *ZapLogger) DebugCtx(ctx context.Context, msg string, fields ...zap.Field) {
 	l := log.generateCtxFields(ctx)
 	if ce := l.check(zap.DebugLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
@@ -238,7 +234,7 @@ func (log *ZapLogger) DebugCtx(ctx context.Context, msg string, fields ...zap.Fi
 func (log *ZapLogger) InfoCtx(ctx context.Context, msg string, fields ...zap.Field) {
 	l := log.generateCtxFields(ctx)
 	if ce := l.check(zap.InfoLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
@@ -246,7 +242,7 @@ func (log *ZapLogger) InfoCtx(ctx context.Context, msg string, fields ...zap.Fie
 func (log *ZapLogger) WarnCtx(ctx context.Context, msg string, fields ...zap.Field) {
 	l := log.generateCtxFields(ctx)
 	if ce := l.check(zap.WarnLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
@@ -254,7 +250,7 @@ func (log *ZapLogger) WarnCtx(ctx context.Context, msg string, fields ...zap.Fie
 func (log *ZapLogger) ErrorCtx(ctx context.Context, msg string, fields ...zap.Field) {
 	l := log.generateCtxFields(ctx)
 	if ce := l.check(zap.ErrorLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
@@ -262,7 +258,7 @@ func (log *ZapLogger) ErrorCtx(ctx context.Context, msg string, fields ...zap.Fi
 func (log *ZapLogger) FatalCtx(ctx context.Context, msg string, fields ...zap.Field) {
 	l := log.generateCtxFields(ctx)
 	if ce := l.check(zap.FatalLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
@@ -270,7 +266,7 @@ func (log *ZapLogger) FatalCtx(ctx context.Context, msg string, fields ...zap.Fi
 func (log *ZapLogger) PanicCtx(ctx context.Context, msg string, fields ...zap.Field) {
 	l := log.generateCtxFields(ctx)
 	if ce := l.check(zap.PanicLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
@@ -278,14 +274,14 @@ func (log *ZapLogger) PanicCtx(ctx context.Context, msg string, fields ...zap.Fi
 func (log *ZapLogger) DPanicCtx(ctx context.Context, msg string, fields ...zap.Field) {
 	l := log.generateCtxFields(ctx)
 	if ce := l.check(zap.DPanicLevel, msg); ce != nil {
-		ce.Write(checkFields(fields...)...)
+		ce.Write(fields...)
 	}
 }
 
 func (log *Logger) generateCtxFields(ctx context.Context) *ZapLogger {
 	if ctx != nil && log.contextFunc != nil {
 		log.contextFunc(ctx, log)
-		return log.With(zap.Object("context", log.Ctx))
+		return log.With(zap.Object("context", log.Ctx.data()))
 	}
 	return log
 }

@@ -8,18 +8,13 @@ import (
 
 type any = interface{}
 
-type marshalObjectInterface struct {
-	key string
-	val any
-}
-
-func (o marshalObjectInterface) Interface() interface{} {
-	valTypeof := reflect.TypeOf(o.val)
+func marshalInterface(value any) any {
+	valTypeof := reflect.TypeOf(value)
 	switch valTypeof.Kind() {
 	case reflect.Struct:
-		return o.val
+		return value
 	case reflect.Ptr:
-		return getUnsafePtr(reflect.ValueOf(o.val).Elem())
+		return getUnsafePtr(reflect.ValueOf(value).Elem())
 	default:
 	}
 	return nil
@@ -29,12 +24,12 @@ func getUnsafePtr(field reflect.Value) interface{} {
 	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
 }
 
-type contextLog struct {
+type contextFieldValue struct {
 	value  interface{}
 	caller zapcore.EntryCaller
 }
 
-func (c contextLog) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+func (c contextFieldValue) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	enc.AddString("caller", c.caller.TrimmedPath())
 	switch ctxValue := c.value.(type) {
 	case string:
@@ -51,7 +46,7 @@ func (c contextLog) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 		enc.AddBool("value", ctxValue)
 	case interface{}:
 		if ctxValue != nil {
-			if err := enc.AddReflected("value", marshalObjectInterface{val: ctxValue}.Interface()); err != nil {
+			if err := enc.AddReflected("value", marshalInterface(ctxValue)); err != nil {
 				return err
 			}
 		}

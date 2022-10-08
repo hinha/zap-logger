@@ -35,7 +35,6 @@ type ZapLogger struct {
 
 	Ctx *inmemCtx
 
-	cores  []zapcore.Core
 	rotate *lumberjack.Logger
 }
 
@@ -304,4 +303,8 @@ func (log *ZapLogger) WithFields(fields map[string]interface{}) *ZapLogger {
 		i++
 	}
 	return clog
+}
+
+func (log *ZapLogger) Core() zapcore.Core {
+	return log.core
 }
